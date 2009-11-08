@@ -57,16 +57,16 @@ def main():
     page = document.page()
     canvas = page.canvas(margin=mm(18))
 
-    print >> canvas, "/Helvetica findfont"
-    print >> canvas, "20 scalefont"
-    print >> canvas, "setfont"
-    print >> canvas, "0 0 moveto"
-    print >> canvas, ps_escape("Hello, world!"), " show"
+    print("/Helvetica findfont", file=canvas)
+    print("20 scalefont", file=canvas)
+    print( "setfont", file=canvas)
+    print("0 0 moveto", file=canvas)
+    print(ps_escape("Hello, world!"), " show", file=canvas)
 
     fp = open("ps_hello_world.ps", "w")
     document.write_to(fp)
     fp.close()
-    
+
 main()
 
 

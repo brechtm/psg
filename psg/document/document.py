@@ -85,8 +85,6 @@ classes.
 """
 
 import sys, os, warnings
-from string import *
-from types import *
 
 from psg.exceptions import *
 from psg.util import *
@@ -124,7 +122,7 @@ class resource_set(ordered_set):
         if not isinstance(value, resource):
             raise TypeError("A resource_set may only contain "
                             "resource instances, not " + repr(type(resource)))
-        
+
         for index, a in enumerate(self):
             if a.type == "procset" and \
                    a.procset_name == value.procset_name and \
@@ -148,14 +146,14 @@ class resource_set(ordered_set):
         for a in self: ret.add(a)
         for a in other: ret.add(a)
         return ret
-            
+
 
 # The document class
 
 
 class document:
     """
-    Base class for all document classes. 
+    Base class for all document classes.
     """
     def __init__(self, title=None):
         if title is not None: self.title = title
@@ -207,7 +205,7 @@ class document:
                 if len(colspec) not in (1, 3, 4,):
                     raise ValueError
                 else:
-                    self.colspec = colspec                    
+                    self.colspec = colspec
             except ValueError:
                 raise ValueError("Color specification must be 1, 3 or 4 "
                                  "floats in a tuple.")
@@ -220,13 +218,13 @@ class document:
             NotImplementedError()
             """
             raise NotImplementedError()
-    
+
     def register_custom_color(self, name, colspec):
         """
         Pass the params to the constructor of the custom_color class
         above and return it. The custom colors will be kept treck of
         in the self._custom_colors list.
-        
+
         @param name: String indicating the name of the color.
         @param colspec: Tuple of Float values either of length 1 (Gray),
             3 (RGB) or 4 (CMYK)
@@ -234,7 +232,7 @@ class document:
         ret = self.custom_color(self, name, colspec)
         self._custom_colors.append(ret)
         return ret
-    
+
 
 class font_wrapper:
     """
@@ -255,14 +253,14 @@ class font_wrapper:
         self.next = 127
 
     def register_chars(self, us, ignore_missing=True):
-        if type(us) not in (UnicodeType, ListType,):
+        if type(us) not in (str, list):
             raise TypeError("Please use unicode strings!")
         else:
-            if type(us) == UnicodeType:
+            if type(us) == str:
                 chars = map(ord, us)
             else:
                 chars = us
-                
+
             for char in chars:
                 if not self.font.has_char(char):
                     if ignore_missing:
@@ -271,7 +269,7 @@ class font_wrapper:
                                     unicode_to_glyph_name[char], )
                         else:
                             tpl = ( self.font.ps_name, "#%i" % char, )
-                            
+
                         msg = "%s does not contain needed glyph %s" % tpl
                         warnings.warn(msg)
                         char = 32 # space
@@ -279,8 +277,8 @@ class font_wrapper:
                         tpl = ( char, repr(chr(char)), )
                         msg = "No glyph for unicode char %i (%s)" % tpl
                         raise KeyError(msg)
-                    
-                if not self.mapping.has_key(char):
+
+                if char not in self.mapping:
                     self.next += 1
 
                     if self.next > 254:
@@ -289,7 +287,7 @@ class font_wrapper:
                         for b in range(1, 32):
                             if not self.mapping.has_key(b):
                                 self.next = b
-                                
+
                         if next == -1:
                             # If these are exhausted as well, replace
                             # the char by the space character
@@ -298,7 +296,7 @@ class font_wrapper:
                             next = self.next
                     else:
                         next = self.next
-                                
+
                     self.mapping[char] = next
 
     def postscript_representation(self, us):
@@ -308,17 +306,17 @@ class font_wrapper:
         integer unicode char numbers. This function will register all
         characters in us with this page.
         """
-        if type(us) not in (UnicodeType, ListType):
+        if type(us) not in (str, list):
             raise TypeError("Please use unicode strings!")
         else:
             self.register_chars(us)
             ret = []
 
-            if type(us) == ListType:
+            if type(us) == list:
                 chars = us
             else:
                 chars = map(ord, us)
-                
+
             for char in chars:
                 byte = self.mapping.get(char, None)
                 if byte is None:
@@ -331,7 +329,7 @@ class font_wrapper:
 
                 ret.append(byte)
 
-            return join(ret, "")
+            return "".join(ret)
 
     def setup_lines(self):
         """
@@ -340,12 +338,12 @@ class font_wrapper:
         """
         # turn the mapping around
         mapping = dict(map(lambda tpl: ( tpl[1], tpl[0], ),
-                           self.mapping.iteritems()))
+                           self.mapping.items()))
 
         nodefs = 0
         encoding_vector = []
         for a in range(256):
-            if mapping.has_key(a):
+            if a in mapping:
                 if nodefs == 1:
                     encoding_vector.append("/.nodef")
                     nodefs = 0
@@ -362,16 +360,16 @@ class font_wrapper:
 
         tpl = ( self.ps_name(), join80(encoding_vector), self.font.ps_name, )
         return "/%s [%s]\n /%s findfont " % tpl + \
-               "psg_reencode 2 copy definefont pop def\n" 
-        
+               "psg_reencode 2 copy definefont pop def\n"
+
     __str__ = setup_lines
-                    
+
     def ps_name(self):
         """
         Return the name of the re-encoded font for this page.
         """
         return "%s*%i" % ( self.font.ps_name, self.ordinal, )
-        
+
 class page:
     """
     Model a page in a document.
@@ -380,12 +378,12 @@ class page:
     @ivar _font_wrappers: Mapping of PostScript font names to font_wrapper
        instances for all the fonts registered with this page
     """
-    
+
     def __init__(self, document, page_size="a4", label=None):
         """
         Model a page in a document. A page knows about its resources,
         either on page or on document level.
-        
+
         @param document: A psg.document instance.
         @param page_size: Either a string key for the PAPERSIZES dict
            above a pair of numerical values indicating the page's size
@@ -397,8 +395,8 @@ class page:
         @raises KeyError: if the page_size is not known.
         """
         self.document = document
-        
-        if type(page_size) == TupleType:
+
+        if type(page_size) == tuple:
             self._w, self._h = page_size
         else:
             self._w, self._h = PAPERSIZES[page_size]
@@ -414,7 +412,7 @@ class page:
 
     def w(self): return self._w
     def h(self): return self._h
-    
+
     def add_resource(self, resource, document_level=True):
         """
         Add a resource to this page or to this page's document (the default).
@@ -440,7 +438,7 @@ class page:
 
         """
 
-        if type(margin) == TupleType:
+        if type(margin) == tuple:
             if len(margin) == 2:
                 h, v = margin
                 margin = ( h, v, h, v, )
@@ -468,9 +466,9 @@ class page:
         it and cache wrapper objects. The document_level parameter is
         only meaningfull for the first call to register_font() with
         any given font. Fonts are keyed by their PostScript name, not
-        the font objects.        
+        the font objects.
         """
-        if not self._font_wrappers.has_key(font.ps_name):
+        if font.ps_name not in self._font_wrappers:
             number_of_fonts = len(self._font_wrappers)
             wrapper = font_wrapper(self, number_of_fonts,
                                    font, document_level)
@@ -481,7 +479,7 @@ class page:
 
 
 
-            
+
 # Local variables:
 # mode: python
 # ispell-local-dictionary: "english"

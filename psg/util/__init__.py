@@ -54,20 +54,20 @@ modules; except for the misc module from which every identifyer is
 imported here.
 """
 
+##__all__ = ["", ""]
+
+
 # misc
-from misc import *
+from .misc import *
 
 # subfile
-from subfile import subfile
+from .subfile import subfile
 
 # file_like_buffer
-from file_like_buffer import file_like_buffer, file_as_buffer
+from .file_like_buffer import file_like_buffer, file_as_buffer
 
-# meassure
-from measure import *
-
-# uuid
-from uuid import uuid4 as uuid
+# measure
+from .measure import *
 
 # Local variables:
 # mode: python

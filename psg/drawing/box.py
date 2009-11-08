@@ -79,9 +79,9 @@ provides a simple multi-line text layout function.
 """
 
 import sys
-from string import *
+from uuid import uuid4 as uuid
 
-from psg.document import document 
+from psg.document import document
 from psg.exceptions import *
 from psg.util import *
 from psg import debug
@@ -132,7 +132,7 @@ class box:
         else:
             self.page = None
             self.document = parent
-            
+
         self._w = float(w)
         self._h = float(h)
         self._x = float(x)
@@ -145,7 +145,7 @@ class box:
         self.tail = file_like_buffer()
 
         self.push("gsave", "grestore")
-        
+
         if border:
             self.print_bounding_path()
             # Set color to black, line type to solid and width to 'hairline'
@@ -156,7 +156,7 @@ class box:
         if clip:
             self.print_bounding_path()
             print >> self.head, "clip"
-            
+
 
     def from_bounding_box(cls, parent, bb, border=False, clip=False):
         """
@@ -168,7 +168,7 @@ class box:
         return cls(parent, bb.llx, bb.lly, bb.width(), bb.height(),
                    border, clip)
     from_bounding_box = classmethod(from_bounding_box)
-    
+
     def from_center(cls, parent, x, y, w, h, border=False, clip=False):
         """
         For this constructor (x, y) is not the lower left corner of
@@ -190,7 +190,7 @@ class box:
 
     def push(self, for_head, for_tail=None):
         """
-        Append for_head to head and prepent(!) for_tail to tail. If
+        Append for_head to head and prepend(!) for_tail to tail. If
         for_head and for_tail do not end in whitespace, push() will
         append a Unix newline to them before adding them to the
         buffer.
@@ -199,11 +199,11 @@ class box:
             for_head += "\n"
 
         self.head.append(for_head)
-        
+
         if for_tail is not None:
             if len(for_tail) > 0 and for_tail[-1] not in "\n\t\r ":
                 for_tail += "\n"
-                
+
             self.tail.prepend(for_tail)
 
     def write(self, what):
@@ -211,6 +211,8 @@ class box:
         Write to the box' body.
         """
         self.body.write(what)
+
+    append = write
 
     def add_resource(self, resource, document_level=True):
         """
@@ -227,38 +229,30 @@ class box:
         self.head.write_to(fp)
         self.body.write_to(fp)
         self.tail.write_to(fp)
-                           
+
     def print_bounding_path(self):
         # Set up a bounding box path
-        print >> self.head, "newpath"
-        print >> self.head, "%f %f moveto" % ( self.x(), self.y(), )
-        print >> self.head, "%f %f lineto" % ( self.x(),
-                                               self.y() + self.h(), )
-        print >> self.head, "%f %f lineto" % ( self.x() + self.w(),
-                                               self.y() + self.h(), )
-        print >> self.head, "%f %f lineto" % ( self.x() + self.w(),
-                                               self.y(), )
-        print >> self.head, "closepath"
+        print("newpath", file=self.head)
+        print("%f %f moveto" % ( self.x(), self.y(), ), file=self.head)
+        print("%f %f lineto" % ( self.x(), self.y() + self.h(), ), file=self.head)
+        print("%f %f lineto" % ( self.x() + self.w(), self.y() + self.h(), ), file=self.head)
+        print("%f %f lineto" % ( self.x() + self.w(), self.y(), ), file=self.head)
+        print("closepath", file=self.head)
 
-    def append(self, what):
-        self.body.append(what)
-
-    write = append
-        
 class canvas(box):
     """
-    A canvas is a bow to draw on. By now the only difference to a box
+    A canvas is a box to draw on. By now the only difference to a box
     is that it has its own coordinate system. PostScript's translate
     operator is used to relocate the canvas' origin to its lower left
     corner.
     """
-    
+
     def __init__(self, parent, x, y, w, h, border=False, clip=False, **kw):
         box.__init__(self, parent, x, y, w, h, border, clip)
 
         # Move the origin to the lower left corner of the bounding box
-        print >> self.head, "%f %f translate" % ( self.x(), self.y(), )
-    
+        print("%f %f translate" % ( self.x(), self.y(), ), file=self.head)
+
 class textbox(canvas):
     """
     A rectengular area on the page you can fill with paragraphs of
@@ -268,9 +262,9 @@ class textbox(canvas):
         canvas.__init__(self, parent, x, y, w, h, border, clip)
         self._line_cursor = h
         self.set_font(None)
-        
+
     def set_font(self, font, font_size=10, kerning=True,
-                 alignment="left", 
+                 alignment="left",
                  char_spacing=0.0, line_spacing=0, paragraph_spacing=0,
                  tab_stops=()):
         """
@@ -300,14 +294,14 @@ class textbox(canvas):
         self.line_spacing = float(line_spacing)
         self.paragraph_spacing = float(paragraph_spacing)
         self.tab_stops = tab_stops
-        
+
         if font is not None:
             if isinstance(font, font_cls):
                 self.font_wrapper = self.page.register_font(font, True)
-                
+
             elif isinstance(font, document.font_wrapper):
                 self.font_wrapper = font
-                
+
             else:
                 raise TypeError("The font must be provided as a "
                                 "psg.fonts.font or "
@@ -322,9 +316,9 @@ class textbox(canvas):
                 if self.font_wrapper is not None: self.newline()
             except EndOfBox:
                 raise BoxTooSmall("The box is smaller than the line height.")
-            
 
-        
+
+
 
     def typeset(self, text):
         r"""
@@ -333,7 +327,7 @@ class textbox(canvas):
         newlines (\n), otherwise any white space is treated as a
         single space (like in HTML or TeX). The function will return
         any text that did not fit the box as a (normalized) Unicode
-        string. No hyphanation will be performed. 
+        string. No hyphanation will be performed.
         """
         if type(text) != UnicodeType:
             raise TypeError("typeset() only works on unicode strings!")
@@ -342,14 +336,14 @@ class textbox(canvas):
             raise IllegalFunctionCall("You must call set_font() before "
                                       "typesetting any text.")
 
-        paragraphs = split(text, "\n")
+        paragraphs = text.split("\n")
         paragraphs = filter(lambda a: strip(a) != "", paragraphs)
         paragraphs = map(splitfields, paragraphs)
         # Paragraphs is now a list of lists containing words (Unicode strings).
 
         space_width = self.font_wrapper.font.metrics.stringwidth(
             " ", self.font_size)
-        
+
         try:
             paragraph = []
             while(paragraphs):
@@ -379,7 +373,7 @@ class textbox(canvas):
                     self.newline()
 
                 self.advance(self.paragraph_spacing)
-                
+
         except EndOfBox:
             paragraphs.insert(0, paragraph)
             paragraphs = map(lambda l: join(l, " "), paragraphs)
@@ -408,14 +402,14 @@ class textbox(canvas):
         char_widths = []
 
         word_count = len(words)
-        
+
         while(words):
             word, word_width = car(words)
             words = cdr(words)
-            
+
             for idx in range(len(word)):
                 char = ord(word[idx])
-                
+
                 if self.kerning:
                     try:
                         next = ord(word[idx+1])
@@ -424,7 +418,7 @@ class textbox(canvas):
 
                     kerning = self.font_wrapper.font.metrics.kerning_pairs.get(
                         ( char, next, ), 0.0)
-                    kerning = kerning * self.font_size / 1000.0 
+                    kerning = kerning * self.font_size / 1000.0
                 else:
                     kerning = 0.0
 
@@ -432,10 +426,10 @@ class textbox(canvas):
                     spacing = 0.0
                 else:
                     spacing = self.char_spacing
-                    
+
                 char_width = self.font_wrapper.font.metrics.stringwidth(
                     unichr(char), self.font_size) + kerning + spacing
-            
+
                 chars.append(char)
                 char_widths.append(char_width)
 
@@ -474,19 +468,19 @@ class textbox(canvas):
 
         # Position PostScript's cursor
         print >> self, "%f %f moveto" % ( x, self._line_cursor, )
-            
+
         char_widths = map(lambda f: "%.2f" % f, char_widths)
         tpl = ( self.font_wrapper.postscript_representation(chars),
                     join(char_widths, " "), )
         print >> self, "(%s) [ %s ] xshow" % tpl
-        
+
     def newline(self):
         """
         Move the cursor downwards one line. In debug mode (psg.debug.debug
         is set to verbose) this function will draw a thin gray line below
         every line. (No PostScript is generated by this function!)
         """
-        self.advance(self.line_height())                                
+        self.advance(self.line_height())
 
     def line_height(self):
         """
@@ -512,7 +506,7 @@ class textbox(canvas):
             l = self._line_cursor
 
         return self.h() - l
-        
+
 
 
 
@@ -559,7 +553,7 @@ class _eps_image(box):
             print >> file_resource, "       ostate restore"
             print >> file_resource, "   } bind"
             print >> file_resource, ">> def"
-            
+
             # Store the ps code to use the eps file in self
             print >> self, "%s execform" % identifyer
         else:
@@ -571,8 +565,8 @@ class _eps_image(box):
             print >> self
             print >> self, "%%EndDocument"
             print >> self, "psg_end_epsf"
-            
-        
+
+
 class eps_image(_eps_image):
     """
     Include a EPS complient PostScript document into the target
@@ -584,14 +578,14 @@ class eps_image(_eps_image):
         @param fp: File pointer opened for reading of the EPS file to be
            included
         @param document_level: Boolean indicating whether the EPS file shall
-           be part of the document prolog and be referenced several times from 
+           be part of the document prolog and be referenced several times from
            within the document or if it shall be included where it is used
            for a single usage.
         """
-        
+
         if isinstance(parent, document.document):
             document_level = True
-        
+
         # Skip forward in the input file seeking for the %PS.
         # This is in case the file starts with garbage.
         lines = line_iterator(fp)
@@ -599,7 +593,7 @@ class eps_image(_eps_image):
         for line in lines:
             if "%!PS" in line:
                 break
-            
+
         lines.rewind()
 
         begin = lines.fp.tell()
@@ -617,16 +611,16 @@ class eps_image(_eps_image):
 
         if bb is None:
             raise Excetion("Not a valid EPS file (no bounding box!)")
-        
+
         parts = split(bb, ":")
         numbers = parts[1]
         bb = bounding_box.from_string(numbers)
 
         fp.seek(0, 2)
         length = fp.tell()
-        
+
         fp = subfile(fp, begin, length-begin)
-        
+
         _eps_image.__init__(self, parent, fp, bb, document_level,
                             border, clip)
 
@@ -649,13 +643,13 @@ class raster_image(_eps_image):
 
         def write_to(self, fp):
             self.pil_image.save(fp, "EPS")
-    
+
     def __init__(self, parent, pil_image, document_level=False,
                  border=False, clip=False):
         """
         @param pil_image: Instance of PIL's image class
         @param document_level: Boolean indicating whether the EPS file shall
-           be part of the document prolog and be referenced several times from 
+           be part of the document prolog and be referenced several times from
            within the document or if it shall be included where it is used
            for a single usage.
         """
@@ -674,10 +668,10 @@ class wmf_file(_eps_image):
                  border=False, clip=False):
 
         eps = wmf2eps(wmf_fp)
-        
+
         bb = eps.bounding_box
         bb = bounding_box.from_tuple(bb)
-        
+
         _eps_image.__init__(self, parent, eps, bb, document_level,
                             border, clip)
 

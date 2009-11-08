@@ -43,8 +43,13 @@
 
 """
 This module contains functions and classes for calculating length and
-area on paper. 
+area on paper.
 """
+
+__all__ = ["PAPERSIZES", "parse_paper_size",
+    "pt", "m", "dm", "cm", "mm", "foot", "feet", "inch", "pc", "pica",
+    "parse_length", "min", "max", "bounding_box"]
+
 
 import sys
 from types import *
@@ -52,7 +57,7 @@ from string import *
 
 PAPERSIZES = {
     # This dict is copied over from the pyscript project.
-    
+
     # Page sizes defined by Adobe documentation
     "11x17": (792, 1224),
     # a3 see below
@@ -65,7 +70,7 @@ PAPERSIZES = {
     # lettersmall should be letter with an ImagingBBox of [25 25 587 767].
     # note should be letter (or some other size) with the ImagingBBox
     # shrunk by 25 units on all 4 sides.
-    
+
     # ISO standard paper sizes
     "a0": (2380, 3368),
     "a1": (1684, 2380),
@@ -78,7 +83,7 @@ PAPERSIZES = {
     "a8": (148, 210),
     "a9": (105, 148),
     "a10": (74, 105),
-    
+
     # ISO and JIS B sizes are different....
     # first ISO
     "b0": (2836, 4008),
@@ -102,20 +107,20 @@ PAPERSIZES = {
     "c4": (649, 918),
     "c5": (459, 649),
     "c6": (323, 459),
-    
+
     # U.S. CAD standard paper sizes
     "arche": (2592, 3456),
     "archd": (1728, 2592),
     "archc": (1296, 1728),
     "archb": (864, 1296),
     "archa": (648, 864),
-    
+
     # Other paper sizes
     "flsa": (612, 936), # U.S. foolscap
     "flse": (612, 936), # European foolscap
     "halfletter": (396, 612),
-    
-    # Screen size (NB this is 2mm too wide for A4): 
+
+    # Screen size (NB this is 2mm too wide for A4):
     "screen": (800, 600) }
 
 
@@ -124,11 +129,11 @@ def parse_paper_size(name, allow_arbitrary=False):
         name = strip(name[:-len("landscape")])
         value = parse_paper_size(name, allow_arbitrary)
         return value[1], value[0]
-    
+
     elif name.endswith("portrait"):
         name = strip(name[:-len("portrait")])
         return parse_paper_size(name, allow_arbitrary)
-        
+
     if PAPERSIZES.has_key(name):
         w, h =  PAPERSIZES[name]
         return float(w), float(h)
@@ -142,7 +147,7 @@ def parse_paper_size(name, allow_arbitrary=False):
                 w, h = pair
                 w = float(w)
                 h = float(h)
-                
+
                 return w, h
             except ValueError:
                 raise IllegalPaperSize("I don't know %s" % repr(name))
@@ -197,7 +202,7 @@ def parse_length(s):
         value = float(s)
     except ValueError:
         raise ValueError("Illegal length: %s" % repr(s))
-    
+
     return value
 
 
@@ -231,7 +236,7 @@ class bounding_box:
         # and the second the upper right.
         if llx > urx: llx, urx = urx, llx
         if lly > ury: lly, ury = ury, lly
-        
+
         self.llx = llx
         self.lly = lly
         self.urx = urx
@@ -240,7 +245,7 @@ class bounding_box:
     def from_tuple(cls, tpl):
         llx, lly, urx, ury = tpl
         return cls(llx, lly, urx, ury)
-    
+
     from_tuple = classmethod(from_tuple)
 
     def from_string(cls, s):
@@ -265,7 +270,7 @@ class bounding_box:
 
     def copy(self):
         return bounding_box(self.llx, self.lly, self.urx, self.ury)
-                            
+
     def as_string(self, hires=False):
         """
         @returns: A string representation of this BoundingBox, eigther as

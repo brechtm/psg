@@ -41,10 +41,8 @@
 """
 This module contains code to handle PostScript Type1 fonts.
 """
-from types import *
-
-from font import font
-from afm_metrics import afm_metrics
+from .font import font
+from .afm_metrics import afm_metrics
 
 class type1(font):
     """
@@ -59,15 +57,15 @@ class type1(font):
            None for resident fonts.
         @param afm_file: File pointer of the corresponding .afm file
         """
-        if type(main_font_file) == StringType:
-            main_font_file = open(main_font_file)
+        if type(main_font_file) == str:
+            main_font_file = open(main_font_file, 'rb')
 
-        if type(afm_file) == StringType:
-            afm_file = open(afm_file)
-        
+        if type(afm_file) == str:
+            afm_file = open(afm_file, 'rb')
+
         self._main_font_file = main_font_file
         self._afm_file = afm_file
-        
+
         metrics = afm_metrics(afm_file)
 
         font.__init__(self,
@@ -80,7 +78,7 @@ class type1(font):
                       metrics)
 
     def has_char(self, unicode_char_code):
-        return self.metrics.has_key(unicode_char_code)
+        return unicode_char_code in self.metrics
 
 
     def main_font_file(self):
@@ -88,7 +86,7 @@ class type1(font):
 
     def afm_file(self):
         return self._afm_file
-        
+
 
 
 # Local variables:

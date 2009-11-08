@@ -61,10 +61,10 @@ files = glob("%s/*.ps" % directory)
 revision_re = re.compile(r"\$\s*Revision:\s*(\d+)\.(\d+)\s*\$")
 
 for file_name in files:
-    ps = open(file_name).read()    
-    parts = split(os.path.basename(file_name), ".") # split of the .ps
+    ps = open(file_name).read()
+    parts = os.path.basename(file_name).split(".") # split of the .ps
     var_name = parts[0]
-    
+
     result = revision_re.findall(ps)
     version = result[0]
     major, minor = version
@@ -75,7 +75,7 @@ for file_name in files:
 
     # DSC procset
     section = dsc_section(info="procset %s" % procset_name)
-    print >> section, ps
+    print(ps, file=section)
     globals()["dsc_%s" % var_name] = dsc_resource(type="procset",
                                                   name=procset_name,
                                                   section=section,

@@ -74,9 +74,9 @@ def subfile(fp, offset, length):
     if hasattr(fp, "fileno"):
         return filesystem_subfile(fp, offset, length)
     else:
-        return default_subfile(fp, offset, length)    
+        return default_subfile(fp, offset, length)
 
-class _subfile(file):
+class _subfile(object):
     """
     Don't instantiate!! Although you can, don't!
     """
@@ -84,7 +84,7 @@ class _subfile(file):
         self.parent = fp
         self.offset = offset
         self.length = length
-        
+
         self.seek(0)
 
     def close(self):
@@ -102,7 +102,7 @@ class _subfile(file):
 
     def read(self, bytes=None):
         if bytes is None: bytes = self.length
-        
+
         if self.parent.tell() + bytes > self.offset + self.length:
             bytes = self.offset + self.length - self.parent.tell()
 
@@ -131,7 +131,7 @@ class _subfile(file):
                 break
             else:
                 yield line
-                
+
 
     def xreadlines(self):
         return self.readlines()
@@ -189,7 +189,7 @@ class filesystem_subfile(_subfile):
             _subfile.__init__(self, parent, offset+fp.offset, length)
         else:
             _subfile.__init__(self, parent, offset, length)
-    
+
 
     def fileno(self):
         return self.parent.fileno()
@@ -238,7 +238,7 @@ class default_subfile(_subfile):
         self.save()
         return _subfile.write(self, s)
         self.restore()
-        
+
     def writelines(self, l):
         self.save()
         return _subfile.writelines(self, l)

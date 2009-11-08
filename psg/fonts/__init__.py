@@ -39,8 +39,8 @@ backend that provides higher level functions to do calculations based on the
 matics.
 """
 
-from font import font, font_family
-from type1 import type1
+from .font import font, font_family
+from .type1 import type1
 
 
 # Local variables:

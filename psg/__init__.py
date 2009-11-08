@@ -55,8 +55,10 @@ Welcome to the Python PostScript Generator
  Any ideas, suggestion or criticism is always welcome!
 
  Diedrich Vorberg <U{diedrich@tux4web.de}>
- 
+
 """
+
+__all__ = ["document", "drawing", "fonts", "interpreters", "procsets", "util"]
 
 # Local variables:
 # mode: python

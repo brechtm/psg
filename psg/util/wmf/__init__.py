@@ -31,6 +31,8 @@
 #
 #
 
+__all__ = ["definitions", "postscript_reader", "reader", "wmfutil"]
+
 # Local variables:
 # mode: python
 # ispell-local-dictionary: "english"

@@ -74,7 +74,7 @@ a -> FontMetrics
 None
 
 >>> a.['Direction'][0]['CharMetrics']
-<CharMetrics section object> 
+<CharMetrics section object>
 
 The structure of an AFM file looks like this::
 
@@ -111,7 +111,6 @@ The structure of an AFM file looks like this::
 
 import sys, re
 from warnings import warn
-from string import *
 from types import *
 
 from psg.exceptions import AFMParseError as ParseError
@@ -127,7 +126,7 @@ class int(py_int):
             py_int.__init__(self, value, base)
         except ValueError:
             raise ParseError(
-                "Illegal representaion of an integer: %s" % repr(value))
+                "Illegal representation of an integer: %s" % repr(value))
 
 py_float = float
 
@@ -137,7 +136,7 @@ class float(py_float):
             py_float.__init__(self, value)
         except ValueError:
             raise ParseError(
-                "Illegal representaion of a number: %s" % repr(value))
+                "Illegal representation of a float: %s" % repr(value))
 
 
 def float_tuple(elements, size):
@@ -148,9 +147,9 @@ def float_tuple(elements, size):
     ret = []
     for a in range(size):
         ret.append(float(elements[a]))
-        
+
     return tuple(ret)
-                
+
 def float_pair(elements):
     """
     Will return the first elements of string list elements as
@@ -183,7 +182,7 @@ class _keywords(list):
     """
     def __init__(self, *args):
         for arg in args:
-            if type(arg) not in ( TypeType, ClassType, ):
+            if type(arg) != type:
                 raise ValueError(
                   "There may only be classes in a keywords list, not %s (%s)"%
                                              ( repr(type(arg)), repr(arg),) )
@@ -196,7 +195,7 @@ class _keywords(list):
     def cls(self, keyword):
         if keyword.startswith("Start"):
             keyword = keyword[5:]
-            
+
         for a in self:
             if a.__name__ == keyword:
                 return a
@@ -255,10 +254,10 @@ class section(keyword, dict):
     optional = False
     multiple = 0
     implicit_start_stop = False
-    
+
     subsections = _sections()
     keywords = _keywords()
-    
+
     def __init__(self, line_iterator, info, parent, implicit_keyword=False):
         """
         @param line_iterator: Line iterator (see below)
@@ -272,13 +271,13 @@ class section(keyword, dict):
         """
         keyword.__init__(self, info)
         self._all = []
-        
+
         try:
             if self.info is not None:
                 self.info = self.info_cls(self.info)
         except ValueError:
-            raise ParseError, "Can't parse %s as %s" % \
-                            ( repr(info), self.info_cls.__name__, )
+            raise ParseError("Can't parse %s as %s" % \
+                            ( repr(info), self.info_cls.__name__, ))
 
         self.implicit_keyword = implicit_keyword
 
@@ -294,23 +293,23 @@ class section(keyword, dict):
                 else:
                     raise ParseError("Unexpected end of file")
 
-            if strip(line) == "": # empty line
+            if line.strip() == "": # empty line
                 continue
 
-            parts = splitfields(line)
+            parts = line.split()
             keyword = parts[0]
-            
+
             if len(parts) > 1:
-                info = join(parts[1:])
+                info = " ".join(parts[1:])
             else:
                 info = ""
 
             if keyword in self.keywords.keywords():
                 self.add_keyword(keyword, info)
             elif keyword in self.subsections.start_keywords():
-                self.add_subsection(line_iterator, keyword, info) 
+                self.add_subsection(line_iterator, keyword, info)
             elif keyword.startswith("End%s" % self.__class__.__name__):
-                return # Finished this section        
+                return # Finished this section
             elif parent is not None and keyword in parent.keywords.keywords():
                 # It seems that if the subsection's keywords are omited
                 # section and subsection keywords may be mixed freely.
@@ -328,7 +327,7 @@ class section(keyword, dict):
                 # to 'him'.
                 line_iterator.rewind()
                 return
-            elif keyword in ( "",  "Comment", ) : 
+            elif keyword in ( "",  "Comment", ) :
                 continue # An empty line
             elif keyword[0] in "abcdefghijklmnopqrstuvwxyz":
                 continue # keywords that start with a lower char are user
@@ -344,7 +343,7 @@ class section(keyword, dict):
                         line_iterator.rewind()
                         found = True
                         self.add_subsection(line_iterator, cls.__name__, None,
-                                            implicit_start_stop=True) 
+                                            implicit_start_stop=True)
 
                 if not found:
                     tpl = ( self.__class__.__name__, repr(line), )
@@ -354,16 +353,16 @@ class section(keyword, dict):
         pass
 
     def add_subsection(self, line_iterator, keyword, info,
-                       implicit_start_stop=False): 
+                       implicit_start_stop=False):
         subsection_class = self.subsections.cls(keyword)
         section_object = subsection_class(line_iterator, info, self,
                                           implicit_start_stop)
 
         if keyword.startswith("Start"):
             keyword = keyword[5:]
-        
+
         if section_object.multiple == 0:
-            if self.has_key(keyword):
+            if keyword in self:
                 tpl = ( keyword, self.__class__.__name__, )
                 raise ParseError("Multiple %s sections in %s" % tpl)
             self.set(keyword, section_object)
@@ -373,23 +372,23 @@ class section(keyword, dict):
                     idx = 0
                 else:
                     idx = int(info)
-                        
-                if not self.has_key(keyword):
+
+                if keyword not in self:
                     l = []
                     for a in range(section_object.multiple):
                         l.append(None)
-                        
+
                     self.set(keyword, l)
                 else:
                     l = self.get(keyword)
-                        
+
                 l[idx] = section_object
                 #subsection_class(line_iterator, info, self)
             except ValueError:
                 raise ParseError("Can't parse %s into int" %repr(info))
 
     def add_keyword(self, keyword, info):
-        if self.has_key(keyword):
+        if keyword in self:
             tpl = ( self.__class__.__name__, keyword, )
             raise ParseError("Section %s already has keyword %s" % tpl)
         else:
@@ -398,9 +397,9 @@ class section(keyword, dict):
             self.set(keyword, obj.value())
 
     def set(self, name, value):
-       if not self.has_key(name):
+       if name not in self:
            self[name] = value
-           
+
        self._all.append( (name, value,) )
 
     __setvalue__ = set
@@ -418,7 +417,7 @@ class section(keyword, dict):
     def iteritems(self):
         for a in self._all:
             yield a
-        
+
 
 class data_section(section):
     """
@@ -433,21 +432,21 @@ class data_section(section):
     def parse(self, line_iterator, parent):
         while True:
             line = line_iterator.readline()
-            
+
             if line == "":
                 raise ParseError("Unexpected end of file")
-            elif strip(line).startswith("End%s" % self.__class__.__name__):
+            elif line.strip().startswith("End%s" % self.__class__.__name__):
                 return # end of section
-            elif strip(line) == "":
+            elif line.strip() == "":
                 continue # empty line
             else:
                 # pass the line
                 self.parse_line(line)
 
-                
+
     def parse_line(self, line):
         raise NotImplementedError()
-    
+
 # Keyword types
 
 class string(keyword):
@@ -469,16 +468,16 @@ class number(keyword):
     """
     def __init__(self, info):
         self.info = float(info)
-            
+
 class tuple_of_number(keyword):
     """
     For tuples of numbers of a give size
     """
     tuple_size = 2
     def __init__(self, info):
-        parts = splitfields(info)
+        parts = info.split()
         info = []
-        
+
         for part in parts:
             info.append(float(part))
 
@@ -490,9 +489,9 @@ class tuple_of_number(keyword):
 
 class boolean(keyword):
     def __init__(self, info):
-        if "true" in lower(info):
+        if "true" in info.lower():
             self.info = True
-        elif "false" in lower(info):
+        elif "false" in info.lower():
             self.info = False
         else:
             raise ParseError("%s needs boolean argument" % \
@@ -501,11 +500,11 @@ class boolean(keyword):
 class array(keyword):
     def __init__(self, info):
         raise NotImplementedError()
-            
 
- 
-            
-    
+
+
+
+
 
 # Actuel Keywords
 
@@ -543,25 +542,25 @@ class IsFixedPitch(boolean): pass
 # Actual Sections
 
 class CharMetrics(data_section):
-    
+
     def parse_line(self, line):
         """
         Parse a CharMetrics line info a dict as { 'KEY': info }
         """
-        line = strip(line) # get rid of eol characters
-        parts = split(line, ";") # split by the ;s
+        line = line.strip() # get rid of eol characters
+        parts = line.split(";") # split by the ;s
         parts = filter(lambda s: s != "", parts) # remove whitespace
 
         info = {}
         for part in parts:
-            elements = splitfields(part)
+            elements = part.split()
 
             key = elements[0]
             if len(elements) < 2:
                 raise ParseError("CharMetrics key without data")
             else:
                 elements = elements[1:]
-                data = join(elements)
+                data = " ".join(elements)
 
             # For these codes see Adobe Font Metrics File Format Specification
             # 3d. edition, pp. 31ff (section 8).
@@ -569,39 +568,39 @@ class CharMetrics(data_section):
             if key == "C": # character code
                 info["C"] = int(data)
                 info["CH"] = int(data)
-                
+
             elif key == "CH": # character code (hex)
                 data = ps_hex_int(data)
                 info["C"] = data
                 info["CH"] = data
-                    
+
             elif key == "WX" or key == "W0X": # character width direction 0
                 data = float(data)
 
                 info["WX"] = data
                 info["W0X"] = data
-                
+
             elif key == "W1X": # character width direction 1
                 info["W1X"] = float(data)
-                
+
             elif key == "WY" or key == "W0Y": # character height direction 0
                 data = float(data)
 
                 info["WY"] = data
                 info["W0Y"] = data
-                
+
             elif key == "W1Y": # character height direction 1
                 info["W1Y"] = float(data)
-                
+
             elif key == "W" or key == "W0": # character width vector (wri dir 0
                 wx, wy = float_pair(elements)
                 info["W"] = ( wx, wy, )
                 info["W0"] = ( wx, wy, )
-                
+
             elif key == "W1": # character width vector (writing direction 1)
                 wx, wy = float_pair(elements)
                 info["W1"] = ( wx, wy, )
-                
+
             elif key == "W1": # character width vector (writing direction 1)
                 wx, wy = float_pair(elements)
                 info["W1"] = ( wx, wy, )
@@ -621,12 +620,12 @@ class CharMetrics(data_section):
             else:
                 raise ParseError("Unknown CharMetric line: %s" % repr(line))
 
-        if not info.has_key("C"):
+        if "C" not in info:
             raise ParseError("Illegal CharMetrics line: Either C or CH key" +\
                              "Must be present! (%s)" % repr(line))
         else:
             self.set(info["C"], info)
-    
+
 class TrackKern(data_section):
     """
     The TrackKern dictionary will contain tuples like::
@@ -638,7 +637,7 @@ class TrackKern(data_section):
     others are floats. degree will be used as the dictionary key.
     """
     def parse_line(self, line):
-        elements = splitfields(line)
+        elements = line.split()
         elements = filter(lambda a: a != "", elements)
 
         if len(elements) != 6:
@@ -663,20 +662,20 @@ class KernPairs(data_section):
     don't know how to get character names from hex representations.
     """
     def parse_line(self, line):
-        line = strip(line) # get rid of eol characters
-        parts = split(line, ";") # split by the ;s
+        line = line.strip() # get rid of eol characters
+        parts = line.split(";") # split by the ;s
         parts = filter(lambda s: s != "", parts) # remove whitespace
 
         info = {}
         for part in parts:
-            elements = splitfields(part)
-            
+            elements = part.split()
+
             key = elements[0]
             if len(elements) < 2:
                 raise ParseError("KernPairs key without data: %s" % repr(line))
             else:
                 elements = elements[1:]
-                data = join(elements)
+                data = " ".join(elements)
 
             try:
                 if key == "KP":
@@ -694,7 +693,7 @@ class KernPairs(data_section):
                 else:
                     raise ParseError("Unknown data key in KernPairs line %s" %\
                                                                     repr(line))
-                    
+
                 self.set(key, value)
             except IndexError:
                 msg = "Illegel number of data elements in KernPairs line %s" %\
@@ -707,14 +706,14 @@ class KernPairs1(KernPairs): pass
 class KernData(section):
     info_cls = int
     default = 0
-    
+
     subsections = _sections(TrackKern, KernPairs, KernPairs0, KernPairs1)
 
     def check(self):
-        if self.has_key("KernPairs"):
+        if "KernPairs" in self:
             self["KernPairs0"] = self["KernPairs"]
-            
-        if self.has_key("KernPairs0"):
+
+        if "KernPairs0" in self:
             self["KernPairs"] = self["KernPairs0"]
 
 class Composites(data_section):
@@ -724,10 +723,10 @@ class Composites(data_section):
     keyed by the name of the resulting char. Refer to section 10 of the
     AFM file specification for details (p. 37f).
     """
-    
+
     def parse_line(self, line):
-        line = strip(line) # get rid of eol characters
-        parts = split(line, ";") # split by the ;s
+        line = line.strip() # get rid of eol characters
+        parts = line.split(";") # split by the ;s
 
         name = None
         char_parts_num = None
@@ -743,7 +742,7 @@ class Composites(data_section):
                     raise ParseError(msg)
                 else:
                     elements = elements[1:]
-                    data = join(elements)
+                    data = " ".join(elements)
 
                 if key == "CC":
                     name = elements[0]
@@ -772,16 +771,16 @@ class Composites(data_section):
                                                  (repr(line), char_part_num,))
 
         self.set(name, char_parts)
-        
+
 class Direction(section):
     optional = False
     multiple = 2
     implicit_start_stop = True
-    
+
     subsections = _sections( CharMetrics, Composites )
     keywords = _keywords( UnderlinePosition, UnderlineThickness, ItalicAngle,
                           CharWidth, IsFixedPitch )
-    
+
     info_cls = float
 
 class FontMetrics(section):
@@ -795,15 +794,15 @@ class FontMetrics(section):
                           IsCIDFont, # ??
                           CapHeight, XHeight, Ascender, Descender,
                           StdHW, StdVW)
-                          
-    
+
+
     def __init__(self, lines, parent, info):
         self._all = []
         self.info = float(info)
         self.parse(lines, parent)
 
 # Pars function
-    
+
 
 def parse_afm(fp):
     """
@@ -811,7 +810,7 @@ def parse_afm(fp):
     """
     lines = line_iterator(fp)
     first_line = lines.readline()
-    parts = splitfields(first_line)
+    parts = first_line.split()
 
     if parts[0] != "StartFontMetrics" or len(parts) != 2:
         raise ParseError("Not a valid AFM file!")
@@ -822,9 +821,9 @@ def parse_afm(fp):
 
     try:
         return FontMetrics(lines, None, parts[1])
-    except ParseError, e:
+    except ParseError as e:
         e.args = ( e.args[0] + (" (line: %i)" % lines.line_number), )
-        raise 
+        raise
 
 
 # Local variables:

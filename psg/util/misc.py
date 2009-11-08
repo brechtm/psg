@@ -64,17 +64,19 @@
 #
 
 """
-Misc utility functions and classes. 
+Misc utility functions and classes.
 """
 
+__all__ = ["car", "cdr", "line_iterator", "copy_linewise", "ordered_set",
+           "ps_escape", "join80", "eight_squares", "pfb2pfa", "pfb2pfa_buffer",
+           "web_color_to_ps_command"]
+
 import sys, os
-from string import *
-from types import *
 
-from measure import *
+from .measure import *
 
-from file_like_buffer import file_like_buffer
-from subfile import subfile
+from .file_like_buffer import file_like_buffer
+from .subfile import subfile
 
 # Lost In Single Paranthesis
 def car(l): return l[0]
@@ -85,8 +87,8 @@ tail = cdr
 class line_iterator:
     r"""
     Iterate over the lines in a file. Keep track of the line numbers.
-    After a call to next() the file's seek indcator will point at the
-    next by after the newline. Lines are delimeted by either \r\n, \n,
+    After a call to next() the file's seek indicator will point at the
+    next by after the newline. Lines are delimited by either \r\n, \n,
     \r, which ever comes first, in this order. Lines that are longer
     than 256 bytes will be returned as 256 byte strings without a
     newline (because that's the buffer size). This function is binary
@@ -105,23 +107,24 @@ class line_iterator:
         self.last_line = ""
 
     def next(self):
+
         if self.again:
             self.again = False
             self.fp.seek(self.last_line_length, 1)
             return self.last_line
-            
+
         old = self.fp.tell()
         buffer = self.fp.read(256)
-        
+
         bytes_read = len(buffer)
         if bytes_read == 0: # eof
             raise StopIteration
         else:
-            unix_index = buffer.find("\n")
-            mac_index = buffer.find("\r")
+            unix_index = buffer.find(b"\n")
+            mac_index = buffer.find(b"\r")
 
             if unix_index == -1 and mac_index == -1:
-                return buffer
+                return buffer.decode("ASCII")
             else:
                 if unix_index == -1: unix_index = len(buffer)
                 if mac_index == -1: mac_index = len(buffer)
@@ -133,16 +136,16 @@ class line_iterator:
             else:
                 eol = unix_index
 
-            ret = buffer[:eol+1]
+            ret = buffer[:eol+1].decode("ASCII")
 
             self.last_line_length = len(ret)
             self.fp.seek(old + self.last_line_length, 0)
-            
+
             self.last_line = ret
 
             self.line_number += 1
-            
-            return ret            
+
+            return ret
 
     readline = next
 
@@ -155,7 +158,7 @@ class line_iterator:
         self.again = True
         self.line_number -= 1
         self.fp.seek(-self.last_line_length, 1)
-        
+
 
     def __iter__(self):
         return self
@@ -166,13 +169,13 @@ def copy_linewise(frm, to, ignore_comments=False):
     This makes sure that all PostScript comments end with a regular
     Unix newline. (I'm not sure, what PostScript interpreters think of
     mixed-newline files.) Otherwise it does not alter the input stream
-    and should be binary safe.    
+    and should be binary safe.
     """
     last_char = ""
     for line in line_iterator(frm):
         if not (ignore_comments and line.startswith("%%")):
             to.write(line)
-        
+
         #if line.startswith("%"):
         #    if last_char != "\n": to.write("\n")
         #    to.write(strip(line))
@@ -217,16 +220,16 @@ def ps_escape(s, always_parenthesis=True):
     """
     if not  always_parenthesis and " " in s:
         always_parenthesis = True
-        
+
     if always_parenthesis: ret = ["("]
     for a in map(ord, s):
         if (a < 32) or (chr(a) in r"\()"):
             ret.append(r"\03%o" % a)
         else:
             ret.append(chr(a))
-            
+
     if always_parenthesis: ret.append(")")
-    return join(ret, "")
+    return "".join(ret)
 
 def join80(collection):
     r"""
@@ -250,7 +253,7 @@ def join80(collection):
     if len(ret) > 1:
         del ret[-1]
 
-    return join(ret, "")
+    return "".join(ret)
 
 def eight_squares(canvas, spacing=mm(6)):
     """
@@ -270,14 +273,14 @@ def eight_squares(canvas, spacing=mm(6)):
                            2*box_size + spacing, top)
 
         top -= box_size + spacing
-                           
+
 
 
 def pfb2pfa(pfb, pfa):
     """
     Convert a PostScript Type1 font in binary representation (pfb) to
     ASCII representation (pfa). This function is modeled after the
-    pfb2pfa program written in C by Piet Tutelaers. I freely admit 
+    pfb2pfa program written in C by Piet Tutelaers. I freely admit
     that I understand only rudimentarily what I'm doing here.
     """
 
@@ -295,15 +298,15 @@ def pfb2pfa(pfb, pfa):
             l4 = ord(pfb.read(1))
 
             l = l1 | l2 << 8 | l3 << 16 | l4 << 24
-            
+
         if t == 1:
             for i in range(l):
                 c = pfb.read(1)
                 if c == "\r":
                     pfa.write("\n")
                 else:
-                    pfa.write(c)
-                    
+                    pfa.write(c.decode("ASCII"))
+
         elif t == 2:
             for i in range(l):
                 c = pfb.read(1)
@@ -351,7 +354,7 @@ def web_color_to_ps_command(color):
     if color[0] == "#": color = color[1:]
     if len(color) > 6: color = color[:5]
     if len(color) != 6: color += "0" * (6 - len(color))
-    
+
     red = int(color[:2], 16)
     green = int(color[2:4], 16)
     blue = int(color[-2:], 16)

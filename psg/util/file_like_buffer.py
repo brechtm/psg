@@ -61,16 +61,15 @@
 #
 
 """
-Buffers for output file generation 
+Buffers for output file generation
 """
 
 import sys, os
-from string import *
 from types import *
-from cStringIO import StringIO
+from io import StringIO
 
 from psg.exceptions import *
-from misc import *
+##from .misc import *
 
 # Utilities for creating files
 
@@ -90,13 +89,13 @@ class file_like_buffer(list):
     """
     def __init__(self, *args):
         list.__init__(self, args)
-        
+
         for a in self:
-            if type(a) != StringType and not hasattr(a, "__str__"):
+            if type(a) != str and not hasattr(a, "__str__"):
                 raise TypeError("file_like_buffers can only 'contain' "
-                                "string onjects or those reducable to "
+                                "string objects or those reducable to "
                                 "strings")
-    
+
     def write(self, s):
         """
         Write string s to the buffer.
@@ -131,7 +130,7 @@ class file_like_buffer(list):
                 a.write_to(fp)
             else:
                 fp.write(str(a))
-                
+
     def append(self, what):
         """
         Overwrite list's append() method to add type checking.
@@ -139,13 +138,13 @@ class file_like_buffer(list):
         if what is None:
             return
         else:
-            self.check(what)        
+            self.check(what)
             list.append(self, what)
 
     def insert(self, idx, what):
         self.check(what)
         list.insert(self, idx, what)
-            
+
     def prepend(self, what):
         """
         Insert an object as the first element of the list.
@@ -153,11 +152,11 @@ class file_like_buffer(list):
         self.insert(0, what)
 
     def check(self, what):
-        if type(what) != StringType and \
+        if type(what) != str and \
                not hasattr(what, "__str__") and \
                not hasattr(what, "write_to"):
             raise TypeError("You can only write strings to a "
-                            "file_like_buffer, not %s" % repr(type(what))) 
+                            "file_like_buffer, not %s" % repr(type(what)))
 
 
 class file_as_buffer:
@@ -165,7 +164,6 @@ class file_as_buffer:
         self.fp = fp
 
     def write_to(self, fp):
-        from psg.util.misc import copy_linewise
         copy_linewise(self.fp, fp)
 
 

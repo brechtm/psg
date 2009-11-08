@@ -61,9 +61,9 @@ from string import *
 from types import *
 
 from psg.util import *
-from afm_parser import parse_afm
-from metrics import metrics, glyph_metric
-from encoding_tables import *
+from .afm_parser import parse_afm
+from .metrics import metrics, glyph_metric
+from .encoding_tables import *
 
 class global_info(property):
     """
@@ -78,14 +78,14 @@ class global_info(property):
 
 class afm_metrics(metrics):
     gs_uni_re = re.compile("uni[A-Z0-9]{4}")
-    
+
     def __init__(self, fp):
         """
         @param fp: File pointer of the AFM file opened for reading.
         @raises KeyError: if the font's encoding is not known.
         """
         metrics.__init__(self)
-        
+
         self.FontMetrics = parse_afm(fp)
 
         try:
@@ -115,7 +115,7 @@ class afm_metrics(metrics):
                     continue
 
             bb = bounding_box.from_tuple(info["B"])
-            self[unicode_char_code] = glyph_metric(char_code, 
+            self[unicode_char_code] = glyph_metric(char_code,
                                                    info["W0X"], glyph_name,
                                                    bb)
 
@@ -126,12 +126,12 @@ class afm_metrics(metrics):
             for pair, info in kern_pairs.iteritems():
                 a, b = pair
                 key, info0, info1 = info
-            
+
                 if key == "KPH":
                     a = encoding_table[a]
                     b = encoding_table[b]
                 else:
-                    a = glyph_name_to_unicode[a] 
+                    a = glyph_name_to_unicode[a]
                     b = glyph_name_to_unicode[b]
 
                 kerning = info0
@@ -139,7 +139,7 @@ class afm_metrics(metrics):
                 self.kerning_pairs[ ( a, b, ) ] = kerning
         except KeyError:
             pass
-        
+
     ps_name = global_info("FontName")
     full_name = global_info("FullName")
     family_name = global_info("FamilyName")
